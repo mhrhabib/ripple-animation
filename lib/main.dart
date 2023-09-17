@@ -38,7 +38,7 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
     super.initState();
     animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1000),
     );
 
     animationController!.addStatusListener((status) {
@@ -64,7 +64,7 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
       animationController!.reset();
       animationController!.forward();
 
-      Future.delayed(const Duration(milliseconds: 2000), () {
+      Future.delayed(const Duration(milliseconds: 1000), () {
         setState(() {
           rippleRadius = 0.0;
         });
@@ -89,7 +89,7 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
         animationController!.forward();
       });
 
-      Future.delayed(const Duration(milliseconds: 2000), () {
+      Future.delayed(const Duration(milliseconds: 1000), () {
         setState(() {
           rippleRadius = 0.0;
           isLocked = true;
