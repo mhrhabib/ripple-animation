@@ -31,7 +31,7 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
   double rippleRadius = 0.0;
   Offset tapPosition = const Offset(0.0, 0.0);
   bool isLocked = true;
-  double blackOverlayOpacity = 0.0; // Initial opacity for the black overlay
+  double blackOverlayOpacity = 0.0;
 
   @override
   void initState() {
@@ -81,11 +81,9 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
       setState(() {
         tapPosition = localPosition;
         rippleRadius = MediaQuery.of(context).size.longestSide;
-        blackOverlayOpacity = 1.0; // Set opacity to 1.0 immediately
+        blackOverlayOpacity = 1.0;
       });
 
-      // Trigger a rebuild to update the black overlay
-      // (This is to make the black background appear instantly)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         animationController!.reset();
         animationController!.forward();
@@ -94,11 +92,10 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
       Future.delayed(const Duration(milliseconds: 2000), () {
         setState(() {
           rippleRadius = 0.0;
-          isLocked = true; // Lock the screen after a delay
-          blackOverlayOpacity = 0.0; // Reset the opacity
+          isLocked = true;
+          blackOverlayOpacity = 0.0;
         });
 
-        // Reset the animation controller
         animationController!.reset();
       });
     }
@@ -112,20 +109,16 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
           if (isLocked) {
             _onTap(context, details);
           } else {
-            // Unlock the screen
             _onClosingTap(context, details);
           }
         },
         child: Stack(
           children: [
-            // Background
             Container(
               color: isLocked ? Colors.black : Colors.white,
             ),
-            // Black overlay that gradually fades in when RipplePointer2 is closed
             AnimatedOpacity(
-              duration:
-                  Duration(milliseconds: 500), // Adjust the duration as needed
+              duration: Duration(milliseconds: 500),
               opacity: blackOverlayOpacity,
               child: Container(
                 color: Colors.black,
@@ -157,7 +150,6 @@ class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
                           )
                         : RipplePainter2(
                             tapPosition: tapPosition,
-                            // Reverse animation: From 1 to 0
                             rippleRadius: rippleRadius *
                                 (1.0 - animationController!.value),
                           ),
@@ -197,11 +189,9 @@ class RipplePainter extends CustomPainter {
           Rect.fromPoints(const Offset(0, 0), Offset(size.width, size.height))
               .intersect(blurRect);
 
-      // Paint the clipped circle
       canvas.clipRect(clipRect);
       canvas.drawCircle(tapPosition, rippleRadius, paint);
 
-      // Apply a blur effect using BackdropFilter
       const blurSigma = 20.0;
       final blurFilter = ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma);
       canvas.saveLayer(clipRect, Paint());
@@ -239,11 +229,9 @@ class RipplePainter2 extends CustomPainter {
           Rect.fromPoints(const Offset(0, 0), Offset(size.width, size.height))
               .intersect(blurRect);
 
-      // Paint the clipped circle
       canvas.clipRect(clipRect);
       canvas.drawCircle(tapPosition, rippleRadius, paint);
 
-      // Apply a blur effect using BackdropFilter
       const blurSigma = 20.0;
       final blurFilter = ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma);
       canvas.saveLayer(clipRect, Paint());
