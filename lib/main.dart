@@ -1,251 +1,132 @@
-import 'dart:async';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LockScreen(),
+      home: ImageOverlayWidget(),
     );
   }
 }
 
-class LockScreen extends StatefulWidget {
-  const LockScreen({super.key});
-
+class ImageOverlayWidget extends StatefulWidget {
   @override
-  LockScreenState createState() => LockScreenState();
+  _ImageOverlayWidgetState createState() => _ImageOverlayWidgetState();
 }
 
-class LockScreenState extends State<LockScreen> with TickerProviderStateMixin {
-  AnimationController? animationController;
-  double rippleRadius = 0.0;
-  Offset tapPosition = const Offset(0.0, 0.0);
-  bool isLocked = true;
-  double blackOverlayOpacity = 0.0;
+class _ImageOverlayWidgetState extends State<ImageOverlayWidget>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+  bool isOverlayVisible = false;
+  Offset overlayPosition = const Offset(0, 0);
+  double maxRadius = 0;
 
   @override
   void initState() {
     super.initState();
-    animationController = AnimationController(
+    _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 500),
     );
+  }
 
-    animationController!.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        setState(() {
-          isLocked = false;
-        });
+  void toggleOverlay(Offset position) {
+    setState(() {
+      if (!isOverlayVisible) {
+        overlayPosition = position;
+        maxRadius = MediaQuery.of(context).size.height;
+        _controller!.forward();
+      } else {
+        overlayPosition = position;
+        _controller!.reverse();
       }
+      isOverlayVisible = !isOverlayVisible;
     });
   }
 
-  void _onTap(BuildContext context, TapDownDetails details) {
-    if (isLocked) {
-      final RenderBox renderBox = context.findRenderObject() as RenderBox;
-      final Offset localPosition =
-          renderBox.globalToLocal(details.globalPosition);
-
-      setState(() {
-        tapPosition = localPosition;
-        rippleRadius = MediaQuery.of(context).size.longestSide;
-      });
-
-      animationController!.reset();
-      animationController!.forward();
-
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        setState(() {
-          rippleRadius = 0.0;
-        });
-      });
-    }
-  }
-
-  void _onClosingTap(BuildContext context, TapDownDetails details) {
-    if (!isLocked) {
-      final RenderBox renderBox = context.findRenderObject() as RenderBox;
-      final Offset localPosition =
-          renderBox.globalToLocal(details.globalPosition);
-
-      setState(() {
-        tapPosition = localPosition;
-        rippleRadius = MediaQuery.of(context).size.longestSide;
-        blackOverlayOpacity = 1.0;
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        animationController!.reset();
-        animationController!.forward();
-      });
-
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        setState(() {
-          rippleRadius = 0.0;
-          isLocked = true;
-          blackOverlayOpacity = 0.0;
-        });
-
-        animationController!.reset();
-      });
-    }
+  @override
+  void dispose() {
+    _controller!.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onTapDown: (details) {
-          if (isLocked) {
-            _onTap(context, details);
-          } else {
-            _onClosingTap(context, details);
-          }
-        },
-        child: Stack(
-          children: [
-            Container(
-              color: isLocked ? Colors.black : Colors.white,
-            ),
-            AnimatedOpacity(
-              duration: Duration(milliseconds: 500),
-              opacity: blackOverlayOpacity,
-              child: Container(
-                color: Colors.black,
+      body: Center(
+        child: GestureDetector(
+          onTapUp: (details) {
+            toggleOverlay(details.localPosition);
+          },
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.asset(
+                'images/background.jpg', // Replace with your image URL
+                height: double.infinity,
+                fit: BoxFit.cover,
               ),
-            ),
-            Center(
-              child: Text(
-                isLocked ? 'Locked' : 'Unlocked',
-                style: TextStyle(
-                  fontSize: 20,
-                  color: isLocked ? Colors.white : Colors.black,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              top: 0,
-              width: rippleRadius,
-              height: rippleRadius,
-              child: AnimatedBuilder(
-                animation: animationController!,
+              AnimatedBuilder(
+                animation: _controller!,
                 builder: (context, child) {
-                  return CustomPaint(
-                    painter: isLocked
-                        ? RipplePainter(
-                            tapPosition: tapPosition,
-                            rippleRadius:
-                                rippleRadius * animationController!.value,
-                          )
-                        : RipplePainter2(
-                            tapPosition: tapPosition,
-                            rippleRadius: rippleRadius *
-                                (1.0 - animationController!.value),
+                  return ClipPath(
+                    clipper: CustomCircleClipper(
+                      _controller!.value, // The current animation value
+                      overlayPosition,
+                      maxRadius,
+                    ),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.black87,
+                        boxShadow: [
+                          BoxShadow(
+                            offset: Offset(4, 5),
+                            color: Colors.grey,
+                            blurRadius: 5,
+                            spreadRadius: 7,
                           ),
+                        ],
+                      ),
+                    ),
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-
-  @override
-  void dispose() {
-    animationController!.dispose();
-    super.dispose();
-  }
 }
 
-class RipplePainter extends CustomPainter {
-  final Offset tapPosition;
-  final double rippleRadius;
+class CustomCircleClipper extends CustomClipper<Path> {
+  final double animationValue;
+  final Offset position;
+  final double maxRadius;
 
-  RipplePainter({required this.tapPosition, required this.rippleRadius});
+  CustomCircleClipper(this.animationValue, this.position, this.maxRadius);
 
   @override
-  void paint(Canvas canvas, Size size) {
-    if (rippleRadius > 0) {
-      final paint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill;
+  Path getClip(Size size) {
+    final currentRadius = maxRadius * animationValue;
+    final dx = position.dx;
+    final dy = position.dy;
 
-      final blurRect =
-          Rect.fromCircle(center: tapPosition, radius: rippleRadius);
-      final clipRect =
-          Rect.fromPoints(const Offset(0, 0), Offset(size.width, size.height))
-              .intersect(blurRect);
-
-      canvas.clipRect(clipRect);
-      canvas.drawCircle(tapPosition, rippleRadius, paint);
-
-      const blurSigma = 20.0;
-      final blurFilter = ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma);
-      canvas.saveLayer(clipRect, Paint());
-      canvas.drawCircle(tapPosition, rippleRadius, paint);
-      canvas.restore();
-      canvas.saveLayer(clipRect, Paint());
-      canvas.drawCircle(
-          tapPosition, rippleRadius, paint..imageFilter = blurFilter);
-      canvas.restore();
-    }
+    final path = Path();
+    path.addOval(
+        Rect.fromCircle(center: Offset(dx, dy), radius: currentRadius));
+    path.addRect(
+        Rect.fromPoints(const Offset(0, 0), Offset(size.width, size.height)));
+    return path..fillType = PathFillType.evenOdd;
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
-  }
-}
-
-class RipplePainter2 extends CustomPainter {
-  final Offset tapPosition;
-  final double rippleRadius;
-
-  RipplePainter2({required this.tapPosition, required this.rippleRadius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (rippleRadius > 0) {
-      final paint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill;
-
-      final blurRect =
-          Rect.fromCircle(center: tapPosition, radius: rippleRadius);
-      final clipRect =
-          Rect.fromPoints(const Offset(0, 0), Offset(size.width, size.height))
-              .intersect(blurRect);
-
-      canvas.clipRect(clipRect);
-      canvas.drawCircle(tapPosition, rippleRadius, paint);
-
-      const blurSigma = 20.0;
-      final blurFilter = ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma);
-      canvas.saveLayer(clipRect, Paint());
-      canvas.drawCircle(tapPosition, rippleRadius, paint);
-      canvas.restore();
-      canvas.saveLayer(clipRect, Paint());
-      canvas.drawCircle(
-          tapPosition, rippleRadius, paint..imageFilter = blurFilter);
-      canvas.restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
+  bool shouldReclip(CustomClipper<Path> oldClipper) {
     return true;
   }
 }
