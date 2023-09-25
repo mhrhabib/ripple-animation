@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ImageOverlayWidget extends StatefulWidget {
+  const ImageOverlayWidget({super.key});
+
   @override
-  _ImageOverlayWidgetState createState() => _ImageOverlayWidgetState();
+  ImageOverlayWidgetState createState() => ImageOverlayWidgetState();
 }
 
-class _ImageOverlayWidgetState extends State<ImageOverlayWidget>
+class ImageOverlayWidgetState extends State<ImageOverlayWidget>
     with SingleTickerProviderStateMixin {
   AnimationController? _controller;
   bool isOverlayVisible = false;
